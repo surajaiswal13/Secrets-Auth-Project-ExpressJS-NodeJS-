@@ -1,6 +1,7 @@
 const express = require('express');
 const ejs = require('ejs');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
 
 const app = express();
 
@@ -10,16 +11,78 @@ app.use(bodyParser.urlencoded({
   extended: true
 }));
 
+// Database
+
+mongoose.connect("mongodb://localhost:27017/userDB", {useNewUrlParser: true});
+
+userSchema = {
+  email: String,
+  password: String,
+};
+
+const User = mongoose.model("User", userSchema);
+
+// Home
+
 app.get("/", (req, res) => {
   res.render("home")
 });
 
-app.get("/login", (req, res) => {
-  res.render("login")
+// Register
+
+app.route("/register")
+
+.get((req, res) => {
+  res.render("register")
+})
+
+.post((req, res) => {
+  username = req.body.username
+  password = req.body.password
+
+  const newUser = new User({
+    email: username,
+    password: password
+  })
+
+  newUser.save((err) => {
+    if (err){
+      console.log(err);
+    } else {
+      res.render("secrets")
+    }
+  });
+
 });
 
-app.get("/register", (req, res) => {
-  res.render("register")
+// login
+
+app.route("/login")
+
+.get((req, res) => {
+  res.render("login")
+})
+
+.post((req, res) => {
+
+  const username = req.body.username;
+  const password = req.body.password;
+
+  User.findOne({email: username}, (err, foundUser) => {
+    if (!err) {
+      if (foundUser) {
+        if (foundUser.password === password) {
+          res.render("secrets")
+        } else {
+          res.send("Wrong Password");
+        }
+      } else {
+        res.send("User not Found !")
+      }
+    } else {
+      res.send(err);
+    }
+  });
 });
 
 app.listen("3000", () => {
